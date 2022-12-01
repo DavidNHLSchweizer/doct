@@ -4,3 +4,4 @@
 !template*.docx
 ?.py
 ??.py
+*.pyc
