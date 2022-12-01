@@ -1,15 +1,21 @@
+import datetime
 import re
+import time
 from attr import dataclass
 from pathlib import Path
 import pandas as pd
 import tabula
+
+from dateparser import DateParser
 
 ERRCOMMENT = 'Waarschijnlijk niet een aanvraagformulier'
 class PDFReaderException(Exception): pass
 
 @dataclass
 class AanvraagInfo:
-    datum: str = ''
+    datum_str: str = ''
+    datum: datetime.date = None
+    versie: str = ''
     student: str = ''
     studnr: str = ''
     telno: str = ''
@@ -17,8 +23,13 @@ class AanvraagInfo:
     bedrijf: str = ''
     titel: str = ''
     def __str__(self):
-        return f'{self.student}({self.studnr}) - {self.datum}: {self.bedrijf} - "{self.titel}"'
-
+        return f'{self.student}({self.studnr}): {self.bedrijf} - "{self.titel}"'
+        # return f'{self.student}({self.studnr}) - {self.datum}.{self.versie}: {self.bedrijf} - "{self.titel}"'
+    def parse_datum(self):
+        self.datum,self.versie = DateParser().split_and_parse(self.datum_str)
+        if self.versie.find('/') >= 0:
+            self.versie = self.versie.replace('/','').strip()
+        
 def nrows(table: pd.DataFrame)->int:
     return table.shape[0]
 
@@ -46,10 +57,11 @@ class AanvraagReaderFromPDF:
             if isinstance(table.values[row][0], str): #sometimes there is an empty cell that is parsed by tabula as a float NAN
                 table.values[row][0] = table.values[row][0].replace('\r', '')
     def _parse_main_data(self, table: pd.DataFrame):        
-        student_dict_fields = {'Datum/revisie': 'datum', 'Student': 'student', 'Studentnummer': 'studnr', 'Telefoonnummer': 'telno', 'E-mailadres': 'email', 'Bedrijfsnaam': 'bedrijf'}
+        student_dict_fields = {'Datum/revisie': 'datum_str', 'Student': 'student', 'Studentnummer': 'studnr', 'Telefoonnummer': 'telno', 'E-mailadres': 'email', 'Bedrijfsnaam': 'bedrijf'}
         student_dict_len  = len(student_dict_fields) + 5 # een beetje langer ivm bedrijfsnaam
         self.__rectify_table(table, 0, student_dict_len)
-        self.__parse_table(table, 0, student_dict_len, student_dict_fields)        
+        self.__parse_table(table, 0, student_dict_len, student_dict_fields)
+        self.aanvraag.parse_datum()
     def _parse_title(self, table: pd.DataFrame)->str:
         #regex because some students somehow lose the '.' characters or renumber the paragraphs
         start_paragraph  = '\d.*\(Voorlopige, maar beschrijvende\) Titel van de afstudeeropdracht'
@@ -97,10 +109,11 @@ class ExcelConvertor:
     def write_to_excel(self, filename):
         self.table.to_excel(filename, index=False)
     def __init_table(self):
-        columns = ['student', 'studentnr', 'telefoonnummer', 'email', 'datum/versie', 'bedrijf', 'titel']
+        columns = ['student', 'studentnr', 'telefoonnummer', 'email', 'datum', 'versie', 'bedrijf', 'titel']
         data = []
         for aanvraag in self.AD.aanvragen:
-            data.append([aanvraag.student, aanvraag.studnr, aanvraag.telno, aanvraag.email, aanvraag.datum, aanvraag.bedrijf, aanvraag.titel])
+            datum = aanvraag.datum.strftime('%d-%m-%Y') if aanvraag.datum else aanvraag.datum_str
+            data.append([aanvraag.student, aanvraag.studnr, aanvraag.telno, aanvraag.email, datum, aanvraag.versie, aanvraag.bedrijf, aanvraag.titel])
         return pd.DataFrame(data=data, columns=columns)
 
 if __name__=='__main__':
