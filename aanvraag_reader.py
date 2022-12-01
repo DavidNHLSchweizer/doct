@@ -104,7 +104,7 @@ class ExcelConvertor:
         return pd.DataFrame(data=data, columns=columns)
 
 if __name__=='__main__':
-    AD = AanvraagDirectory(r'C:\repos\doct\data')
+    AD = AanvraagDirectory(r'C:\repos\doct\test')
     EC = ExcelConvertor(AD)
     EC.write_to_excel('aanvragen.xlsx')
     # for aanvraag in AD.aanvragen:
