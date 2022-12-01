@@ -89,8 +89,23 @@ class AanvraagDirectory:
                 print(f'***ERROR***: Kan bestand {file}  niet lezen: {E}\n{ERRCOMMENT}.')
     def __sort_files(self):
         self.aanvragen.sort(key=lambda aanvraag: (aanvraag.student, aanvraag.datum))
+    
+class ExcelConvertor:
+    def __init__(self, AD: AanvraagDirectory):
+        self.AD:AanvraagDirectory = AD
+        self.table = self.__init_table()
+    def write_to_excel(self, filename):
+        self.table.to_excel(filename, index=False)
+    def __init_table(self):
+        columns = ['student', 'studentnr', 'telefoonnummer', 'email', 'datum/versie', 'bedrijf', 'titel']
+        data = []
+        for aanvraag in self.AD.aanvragen:
+            data.append([aanvraag.student, aanvraag.studnr, aanvraag.telno, aanvraag.email, aanvraag.datum, aanvraag.bedrijf, aanvraag.titel])
+        return pd.DataFrame(data=data, columns=columns)
 
 if __name__=='__main__':
     AD = AanvraagDirectory(r'C:\repos\doct\data')
-    for aanvraag in AD.aanvragen:
-        print(aanvraag)
+    EC = ExcelConvertor(AD)
+    EC.write_to_excel('aanvragen.xlsx')
+    # for aanvraag in AD.aanvragen:
+    #     print(aanvraag)
