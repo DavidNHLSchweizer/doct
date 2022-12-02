@@ -21,4 +21,4 @@ class AanvraagProcessor:
         print(f'*** WORD DOCUMENTS CREATED IN {self.output_directory} ***')
 
 
-AanvraagProcessor(r'C:\repos\doct\test', 'aanvragen.xlsx','beoordelingen', 'Beoordeling', TEMPLATE).process()
+AanvraagProcessor(r'C:\repos\doct\test3', 'aanvragen.xlsx','beoordelingen', 'Beoordeling', TEMPLATE).process()
