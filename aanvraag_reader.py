@@ -1,10 +1,12 @@
+import datetime
 import os
 import re
+import time
 from attr import dataclass
 from pathlib import Path
 import pandas as pd
 import tabula
-from aanvraag_data import AanvraagDocumentInfo, AanvraagInfo
+from aanvraag_data import AanvraagData, AanvraagDocumentInfo, AanvraagInfo
 
 ERRCOMMENT = 'Waarschijnlijk niet een aanvraagformulier'
 class PDFReaderException(Exception): pass
@@ -14,7 +16,8 @@ def nrows(table: pd.DataFrame)->int:
 
 class AanvraagReaderFromPDF:
     def __init__(self, pdf_file: str):
-        self.aanvraag = AanvraagInfo(AanvraagDocumentInfo(), Path(pdf_file).stat().st_mtime)        
+        self.aanvraag = AanvraagInfo(AanvraagDocumentInfo(), datetime.datetime.fromtimestamp(Path(pdf_file).stat().st_mtime))        
+        # self.aanvraag = AanvraagInfo(AanvraagDocumentInfo(), time.ctime(Path(pdf_file).stat().st_mtime)))        
         self.read_pdf(pdf_file)
     def read_pdf(self, pdf_file: str):
         tables = tabula.read_pdf(pdf_file,pages='all')
@@ -63,22 +66,28 @@ class AanvraagReaderFromPDF:
             row+=1
         return result
 
-# class AanvraagDirectory:
-#     def __init__(self, directory):
-#         self.directory = directory
-#         self.aanvragen: list[AanvraagInfo] = []
-#         self.__read_files(directory)
-#         self.__sort_files()
-#     def __read_files(self, directory):
-#         for file in Path(directory).glob('*.pdf'):
-#             print(file)
-#             try:           
-#                 self.aanvragen.append(aanvraag:=AanvraagReaderFromPDF(file).aanvraag)
-#                 print(aanvraag)
-#             except Exception as E:
-#                 print(f'***ERROR***: Kan bestand {file}  niet lezen: {E}\n{ERRCOMMENT}.')
-#     def __sort_files(self):
-#         self.aanvragen.sort(key=lambda aanvraag: (aanvraag.student, aanvraag.datum))
+class AanvraagDirectory:
+    def __init__(self, directory, aanvraagdata: AanvraagData = None, xls_filename = 'aanvragen.xlsx'):
+        self.directory = directory
+        if aanvraagdata: 
+            self.aanvraagdata = aanvraagdata
+        else:
+            self.aanvraagdata = AanvraagData(xls_filename, True)
+        self.__filenames = self.__get_filenames(directory)
+    def __get_filenames(self, directory):
+        files = []
+        for file in Path(directory).glob('*.pdf'):
+            files.append(file)
+        return files
+    def read_files(self):            
+        for file in self.__filenames:
+            print(file)
+            try:           
+                self.aanvraagdata.add_aanvraag(aanvraag:=AanvraagReaderFromPDF(file).aanvraag)
+                print(aanvraag)
+            except Exception as E:
+                print(f'***ERROR***: Kan bestand {file}  niet lezen: {E}\n{ERRCOMMENT}.')
+        self.aanvraagdata.save()
     
 # class ExcelConvertor:
 #     def __init__(self, AD: AanvraagDirectory):
