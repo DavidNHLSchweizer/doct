@@ -1,30 +1,20 @@
+import os
 import re
 from attr import dataclass
 from pathlib import Path
 import pandas as pd
 import tabula
+from aanvraag_data import AanvraagDocumentInfo, AanvraagInfo
 
 ERRCOMMENT = 'Waarschijnlijk niet een aanvraagformulier'
 class PDFReaderException(Exception): pass
-
-@dataclass
-class AanvraagInfo:
-    datum: str = ''
-    student: str = ''
-    studnr: str = ''
-    telno: str = ''
-    email: str = ''
-    bedrijf: str = ''
-    titel: str = ''
-    def __str__(self):
-        return f'{self.student}({self.studnr}) - {self.datum}: {self.bedrijf} - "{self.titel}"'
 
 def nrows(table: pd.DataFrame)->int:
     return table.shape[0]
 
 class AanvraagReaderFromPDF:
     def __init__(self, pdf_file: str):
-        self.aanvraag = AanvraagInfo()
+        self.aanvraag = AanvraagInfo(AanvraagDocumentInfo(), Path(pdf_file).stat().st_mtime)        
         self.read_pdf(pdf_file)
     def read_pdf(self, pdf_file: str):
         tables = tabula.read_pdf(pdf_file,pages='all')
@@ -32,7 +22,7 @@ class AanvraagReaderFromPDF:
         self._parse_title(tables[2])
     def __convert_fields(self, fields_dict, translation_table):
         for field in translation_table:            
-            setattr(self.aanvraag, translation_table[field], fields_dict.get(field, 'NOT FOUND'))
+            setattr(self.aanvraag.docInfo, translation_table[field], fields_dict.get(field, 'NOT FOUND'))
     def __parse_table(self, table: pd.DataFrame, start_row, end_row, translation_table):
         table_dict = {}
         if start_row >= nrows(table) or end_row >= nrows(table):
@@ -54,7 +44,7 @@ class AanvraagReaderFromPDF:
         #regex because some students somehow lose the '.' characters or renumber the paragraphs
         start_paragraph  = '\d.*\(Voorlopige, maar beschrijvende\) Titel van de afstudeeropdracht'
         end_paragraph = '\d.*Wat is de aanleiding voor de opdracht\?'         
-        self.aanvraag.titel = ' '.join(self.__get_strings_from_table(table, start_paragraph, end_paragraph))
+        self.aanvraag.docInfo.titel = ' '.join(self.__get_strings_from_table(table, start_paragraph, end_paragraph))
     def __get_strings_from_table(self, table:pd.DataFrame, start_paragraph_regex:str, end_paragraph_regex:str)->list[str]:
         def row_matches(table, row, pattern:re.Pattern):
             if isinstance(table.values[row][0], str):
@@ -73,39 +63,39 @@ class AanvraagReaderFromPDF:
             row+=1
         return result
 
-class AanvraagDirectory:
-    def __init__(self, directory):
-        self.directory = directory
-        self.aanvragen: list[AanvraagInfo] = []
-        self.__read_files(directory)
-        self.__sort_files()
-    def __read_files(self, directory):
-        for file in Path(directory).glob('*.pdf'):
-            print(file)
-            try:           
-                self.aanvragen.append(aanvraag:=AanvraagReaderFromPDF(file).aanvraag)
-                print(aanvraag)
-            except Exception as E:
-                print(f'***ERROR***: Kan bestand {file}  niet lezen: {E}\n{ERRCOMMENT}.')
-    def __sort_files(self):
-        self.aanvragen.sort(key=lambda aanvraag: (aanvraag.student, aanvraag.datum))
+# class AanvraagDirectory:
+#     def __init__(self, directory):
+#         self.directory = directory
+#         self.aanvragen: list[AanvraagInfo] = []
+#         self.__read_files(directory)
+#         self.__sort_files()
+#     def __read_files(self, directory):
+#         for file in Path(directory).glob('*.pdf'):
+#             print(file)
+#             try:           
+#                 self.aanvragen.append(aanvraag:=AanvraagReaderFromPDF(file).aanvraag)
+#                 print(aanvraag)
+#             except Exception as E:
+#                 print(f'***ERROR***: Kan bestand {file}  niet lezen: {E}\n{ERRCOMMENT}.')
+#     def __sort_files(self):
+#         self.aanvragen.sort(key=lambda aanvraag: (aanvraag.student, aanvraag.datum))
     
-class ExcelConvertor:
-    def __init__(self, AD: AanvraagDirectory):
-        self.AD:AanvraagDirectory = AD
-        self.table = self.__init_table()
-    def write_to_excel(self, filename):
-        self.table.to_excel(filename, index=False)
-    def __init_table(self):
-        columns = ['student', 'studentnr', 'telefoonnummer', 'email', 'datum/versie', 'bedrijf', 'titel']
-        data = []
-        for aanvraag in self.AD.aanvragen:
-            data.append([aanvraag.student, aanvraag.studnr, aanvraag.telno, aanvraag.email, aanvraag.datum, aanvraag.bedrijf, aanvraag.titel])
-        return pd.DataFrame(data=data, columns=columns)
+# class ExcelConvertor:
+#     def __init__(self, AD: AanvraagDirectory):
+#         self.AD:AanvraagDirectory = AD
+#         self.table = self.__init_table()
+#     def write_to_excel(self, filename):
+#         self.table.to_excel(filename, index=False)
+#     def __init_table(self):
+#         columns = ['student', 'studentnr', 'telefoonnummer', 'email', 'datum/versie', 'bedrijf', 'titel']
+#         data = []
+#         for aanvraag in self.AD.aanvragen:
+#             data.append([aanvraag.student, aanvraag.studnr, aanvraag.telno, aanvraag.email, aanvraag.datum, aanvraag.bedrijf, aanvraag.titel])
+#         return pd.DataFrame(data=data, columns=columns)
 
-if __name__=='__main__':
-    AD = AanvraagDirectory(r'C:\repos\doct\test')
-    EC = ExcelConvertor(AD)
-    EC.write_to_excel('aanvragen.xlsx')
-    # for aanvraag in AD.aanvragen:
-    #     print(aanvraag)
+# if __name__=='__main__':
+#     AD = AanvraagDirectory(r'C:\repos\doct\test')
+#     EC = ExcelConvertor(AD)
+#     EC.write_to_excel('aanvragen.xlsx')
+#     # for aanvraag in AD.aanvragen:
+#     #     print(aanvraag)
