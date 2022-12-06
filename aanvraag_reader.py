@@ -8,8 +8,6 @@ import pandas as pd
 import tabula
 from aanvraag_data import AanvraagData, AanvraagDocumentInfo, AanvraagInfo
 
-from dateparser import DateParser
-
 ERRCOMMENT = 'Waarschijnlijk niet een aanvraagformulier'
 class PDFReaderException(Exception): pass
 
@@ -21,7 +19,7 @@ def get_file_timestamp(filename: str):
 
 class AanvraagReaderFromPDF:
     def __init__(self, pdf_file: str):
-        self.aanvraag = AanvraagInfo()
+        self.aanvraag = AanvraagInfo(AanvraagDocumentInfo(), timestamp=get_file_timestamp(pdf_file))
         self.read_pdf(pdf_file)
     def read_pdf(self, pdf_file: str):
         tables = tabula.read_pdf(pdf_file,pages='all')
@@ -49,9 +47,7 @@ class AanvraagReaderFromPDF:
         student_dict_len  = len(student_dict_fields) + 5 # een beetje langer ivm bedrijfsnaam
         print(student_dict_len)
         self.__rectify_table(table, 0, student_dict_len)
-        print(2)        
         self.__parse_table(table, 0, student_dict_len, student_dict_fields)
-        print(3)
         self.aanvraag.parse_datum()
         print(42)
     def _parse_title(self, table: pd.DataFrame)->str:
