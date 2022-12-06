@@ -2,7 +2,7 @@ import datetime
 import pandas as pd
 import pytest
 import warnings
-from aanvraag_data import AanvraagDocumentInfo, AanvraagInfo
+from aanvraag_info import AanvraagDocumentInfo, AanvraagInfo
 from aanvraag_reader import AanvraagReaderFromPDF
 
 #mock tables
@@ -31,7 +31,7 @@ table0=[['Studentgegevens',''],
 ]
 def _generate_table_0(AI: AanvraagInfo)->pd.DataFrame:
     table = pd.DataFrame(data=table0)
-    table.values[1][1]=AI.docInfo.datum
+    table.values[1][1]=AI.docInfo.datum_str
     table.values[2][1]=AI.docInfo.student
     table.values[3][1]=AI.docInfo.studnr
     table.values[4][1]=AI.docInfo.telno
@@ -77,13 +77,14 @@ class MockTabulaReadPDF:
         return self.mock_tables
 
 def test_AanvraagReaderFromPDF_end_to_end(mocker:pytest.MonkeyPatch):
-    adi = AanvraagDocumentInfo(datum='1-2-2020', student='Erica Zandschulp', studnr='123456', telno='06-12345678', email='erica.zandschulp@nhlstenden.dom', bedrijf='Daar wil je niet bijhoren!', titel='Doe iets leuks!')       
+    adi = AanvraagDocumentInfo(datum_str='1-2-2020/v1', student='Erica Zandschulp', studnr='123456', telno='06-12345678', email='erica.zandschulp@nhlstenden.dom', bedrijf='Daar wil je niet bijhoren!', titel='Doe iets leuks!')       
     timestamp = datetime.datetime.now()
     ai = AanvraagInfo(adi, timestamp=timestamp)
     MTBF = MockTabulaReadPDF(ai)
     mocker.patch('aanvraag_reader.tabula', MTBF)
     mocker.patch('aanvraag_reader.get_file_timestamp', return_value=timestamp)
     AR = AanvraagReaderFromPDF('pdf.pdf')
+    print(AR.aanvraag)
     assert AR
     assert AR.aanvraag == ai
 

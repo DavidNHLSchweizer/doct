@@ -26,15 +26,11 @@ def try_return_date(day_str, month_str, year_str, formats)->date:
     return None
 
 class DateParser:
-    INT_DATE_REGEX='(?P<day>\d\d)[-/\w](?P<month>\d\d)[-/\w](?P<year>\d\d\d\d)(?P<rest>.*)'
-    STR_DATE_REGEX='(?P<day>\d\d)[-\/\s]+(?P<month>[a-zA-Z]{3,9})[-\/\s]+(?P<year>\d\d\d\d)(?P<rest>.*)'
-    INT_DATE_YY_REGEX='(?P<day>\d\d)[-/\w](?P<month>\d\d)[-/\w](?P<year>\d\d)(?P<rest>.*)'
-    STR_DATE_YY_REGEX='(?P<day>\d\d)[-\/\s]+(?P<month>[a-zA-Z]{3,9})[-\/\s]+(?P<year>\d\d)(?P<rest>.*)'
+    INT_DATE_REGEX='(?P<day>\d+)[-/\w](?P<month>\d+)[-/\w](?P<year>(\d\d)+)(?P<rest>.*)'
+    STR_DATE_REGEX='(?P<day>\d+)[-\/\s]+(?P<month>[a-zA-Z]{3,9})[-\/\s]+(?P<year>(\d\d)+)(?P<rest>.*)'
     def __init__(self):
         self.int_pattern = re.compile(DateParser.INT_DATE_REGEX)
         self.str_pattern = re.compile(DateParser.STR_DATE_REGEX)
-        self.int_yy_pattern = re.compile(DateParser.INT_DATE_YY_REGEX)
-        self.str_yy_pattern = re.compile(DateParser.STR_DATE_YY_REGEX)
 
     def __parse_date(self, pattern:re.Pattern, s:str, time_format, is_int=False)->tuple[date,str]:
         if match:=pattern.match(s):
@@ -49,9 +45,9 @@ class DateParser:
         return None,s
     def parse_date(self, s: str)-> tuple[date,str]: 
         try_parse= [{'pattern':self.int_pattern, 'format':["%d-%m-%Y"], 'is_int': True},
-                    {'pattern':self.int_yy_pattern, 'format':["%d-%m-%y"], 'is_int': True},
+                    {'pattern':self.int_pattern, 'format':["%d-%m-%y"], 'is_int': True},
                     {'pattern':self.str_pattern, 'format':["%d-%b-%Y", "%d-%B-%Y"], 'is_int': False},
-                    {'pattern':self.str_yy_pattern, 'format':["%d-%b-%y", "%d-%B-%y"], 'is_int': False},
+                    {'pattern':self.str_pattern, 'format':["%d-%b-%y", "%d-%B-%y"], 'is_int': False},
                     ]       
         for try_p in try_parse:
             result, rest = self.__parse_date(try_p['pattern'], s, try_p['format'], try_p['is_int'])
@@ -60,12 +56,12 @@ class DateParser:
         return None,s
 
 if __name__=='__main__':     
-    TESTCASES= ['01-11-2022', '28-11-2022 / Versie 1', '08 november 2022', '08 maart 2022', '28-11-22 / Versie 1', '08 november 22', '08 maart 22','08 mar 2022', '08 mar 22', '21 november 2022 / v1', '30-02-2022','01-13-2022', '08 branuari 2022']
+    TESTCASES= ['3-4-1999', '3-4-1999/v1', '01-11-2022', '28-11-2022 / Versie 1', '08 november 2022', '08 maart 2022', '28-11-22 / Versie 1', '08 november 22', '08 maart 22','08 mar 2022', '08 mar 22', '21 november 2022 / v1', '30-02-2022','01-13-2022', '08 branuari 2022']
     DP = DateParser()
     for case in TESTCASES:
-        d = DP.parse_date(case)
+        d,v = DP.parse_date(case)
         if d:
-            print(f'{case}: {d:%d-%m-%Y}')
+            print(f'{case}: {d:%d-%m-%Y}   v:{v}')
         else:
-            print(f'{case}: NONE')
+            print(f'{case}: NONE  {v}')
 

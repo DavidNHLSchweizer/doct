@@ -1,13 +1,15 @@
 import datetime
-from aanvraag_data import AanvraagDocumentInfo, AanvraagInfo
+from aanvraag_info import AanvraagDocumentInfo, AanvraagInfo
 
 
 #tests AanvraagDocumentInfo
-ATTRIBS = ['datum', 'student', 'studnr', 'telno', 'email', 'bedrijf', 'titel']
+ATTRIBS = ['datum_str', 'student', 'studnr', 'telno', 'email', 'bedrijf', 'titel']
 def test_AanvraagDocumentInfo_init_empty():
     adi = AanvraagDocumentInfo()
     assert adi
-    assert adi.datum == ''
+    assert adi.datum_str == ''
+    assert adi.datum is None
+    assert adi.versie == ''
     assert adi.student == ''
     assert adi.studnr == ''
     assert adi.telno == ''
@@ -16,13 +18,15 @@ def test_AanvraagDocumentInfo_init_empty():
     assert adi.titel == ''
     assert not adi.valid()
 
-TESTCASE = {'datum': '3-4-1999', 'student':'Erica Zwanepoel', 'studnr':'123456', 'telno':'06-12345678', 'email':'erica.zwanepoel@testcases.com', 'bedrijf':'Braakware', 'titel': 'Automatisch drankorgel'}
+TESTCASE = {'datum_str': '3-4-1999/v1', 'datum':datetime.datetime(year=1999,month=4,day=3),'versie':'v1', 'student':'Erica Zwanepoel', 'studnr':'123456', 'telno':'06-12345678', 'email':'erica.zwanepoel@testcases.com', 'bedrijf':'Braakware', 'titel': 'Automatisch drankorgel'}
 
 def _get_adi(testcase):
-    return AanvraagDocumentInfo(datum=testcase['datum'], student=testcase['student'], studnr=testcase['studnr'], telno=testcase['telno'], email=testcase['email'], bedrijf=testcase['bedrijf'], titel=testcase['titel']) 
+    return AanvraagDocumentInfo(datum_str=testcase['datum_str'], student=testcase['student'], studnr=testcase['studnr'], telno=testcase['telno'], email=testcase['email'], bedrijf=testcase['bedrijf'], titel=testcase['titel']) 
 
 def _test_equal(adi, testcase):
+    assert adi.datum_str == testcase['datum_str']
     assert adi.datum == testcase['datum']
+    assert adi.versie == testcase['versie']
     assert adi.student == testcase['student']
     assert adi.studnr == testcase['studnr']
     assert adi.telno == testcase['telno']
@@ -31,7 +35,7 @@ def _test_equal(adi, testcase):
     assert adi.titel == testcase['titel']
 
 def test_AanvraagDocumentInfo_init_no_kwds():
-    adi = AanvraagDocumentInfo(TESTCASE['datum'], TESTCASE['student'], TESTCASE['studnr'], TESTCASE['telno'], TESTCASE['email'], TESTCASE['bedrijf'], TESTCASE['titel']) 
+    adi = AanvraagDocumentInfo(TESTCASE['datum_str'], TESTCASE['student'], TESTCASE['studnr'], TESTCASE['telno'], TESTCASE['email'], TESTCASE['bedrijf'], TESTCASE['titel']) 
     _test_equal(adi, TESTCASE)
     assert adi.valid()
 
@@ -55,7 +59,10 @@ def test_AanvraagDocumentInfo_neq():
     for attr in ATTRIBS:
         attr_value_1 = getattr(adi1, attr)
         adi2 = _get_adi(TESTCASE)
-        setattr(adi2, attr, attr_value_1 + 'Nope')
+        if isinstance(attr_value_1, datetime.datetime):
+            setattr(adi2, attr, attr_value_1 + datetime.timedelta(seconds=1))
+        else:
+            setattr(adi2, attr, attr_value_1 + 'Nope')
         assert adi1 != adi2        
 
 def test_AanvraagDocumentInfo_valid():
@@ -98,14 +105,14 @@ def test_AanvraagInfo_neq_docinfo():
     adi1 = _get_adi(TESTCASE)
     ai1 = AanvraagInfo(adi1, get_test_timestamp())
     adi2 = _get_adi(TESTCASE)
-    adi2.datum='negen uur savonds'
+    adi2.datum_str='negen uur savonds'
     ai2 = AanvraagInfo(adi2, get_test_timestamp())
     assert ai1 != ai2
 
 def test_AanvraagInfo_neq_timestamp():
-    adi1 = AanvraagDocumentInfo(datum='datum', student='student', studnr='studnr', telno='telno', email='email', bedrijf='bedrijf', titel='titel')       
+    adi1 = _get_adi(TESTCASE)
     ai1 = AanvraagInfo(adi1, get_test_timestamp())
-    adi2 = AanvraagDocumentInfo(datum='datum', student='student', studnr='studnr', telno='telno', email='email', bedrijf='bedrijf', titel='titel')       
+    adi2 = _get_adi(TESTCASE)
     ai2 = AanvraagInfo(adi2, datetime.datetime.now())
     assert ai1 != ai2
 
