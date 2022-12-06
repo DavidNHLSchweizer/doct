@@ -27,7 +27,7 @@ class AanvraagInfo:
         # return f'{self.student}({self.studnr}) - {self.datum}.{self.versie}: {self.bedrijf} - "{self.titel}"'
     def parse_datum(self):
         self.datum,self.versie = DateParser().split_and_parse(self.datum_str)
-        if self.versie.find('/') >= 0:
+        if self.versie and self.versie.find('/') >= 0:
             self.versie = self.versie.replace('/','').strip()
         
 def nrows(table: pd.DataFrame)->int:
@@ -39,6 +39,8 @@ class AanvraagReaderFromPDF:
         self.read_pdf(pdf_file)
     def read_pdf(self, pdf_file: str):
         tables = tabula.read_pdf(pdf_file,pages='all')
+        print(tables[0])
+        print(tables[2])
         self._parse_main_data(tables[0])
         self._parse_title(tables[2])
     def __convert_fields(self, fields_dict, translation_table):
@@ -59,9 +61,13 @@ class AanvraagReaderFromPDF:
     def _parse_main_data(self, table: pd.DataFrame):        
         student_dict_fields = {'Datum/revisie': 'datum_str', 'Student': 'student', 'Studentnummer': 'studnr', 'Telefoonnummer': 'telno', 'E-mailadres': 'email', 'Bedrijfsnaam': 'bedrijf'}
         student_dict_len  = len(student_dict_fields) + 5 # een beetje langer ivm bedrijfsnaam
+        print(student_dict_len)
         self.__rectify_table(table, 0, student_dict_len)
+        print(2)        
         self.__parse_table(table, 0, student_dict_len, student_dict_fields)
+        print(3)
         self.aanvraag.parse_datum()
+        print(42)
     def _parse_title(self, table: pd.DataFrame)->str:
         #regex because some students somehow lose the '.' characters or renumber the paragraphs
         start_paragraph  = '\d.*\(Voorlopige, maar beschrijvende\) Titel van de afstudeeropdracht'

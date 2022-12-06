@@ -48,17 +48,20 @@ class DateParser:
                 print(f'Invalid date: {s}: {E}')
         return None
     def split_and_parse(self, s: str)->tuple[date,str]:
-        if (result := self.__parse_date_int(s)):
-            return result
-        elif (result := self.__parse_date_str(s)):
-            return result
-        return None
+        try:
+            if (result := self.__parse_date_int(s)):
+                return result
+            elif (result := self.__parse_date_str(s)):
+                return result
+        except TypeError:
+            pass
+        return None,None
     def parse_date(self, s: str)-> date:
         result,_ = self.split_and_parse(s)
         return result
 
 if __name__=='__main__':     
-    TESTCASES= ['22/11/2022', '01-11-2022', '28-11-2022 / Versie 1', '08 november 2022', '08 maart 2022', '08 mar 2022', '21 november 2022 / v1', '30-02-2022','01-13-2022', '08 branuari 2022']
+    TESTCASES= ['2022/10/31', '22/11/2022', '01-11-2022', '28-11-2022 / Versie 1', '08 november 2022', '08 maart 2022', '08 mar 2022', '21 november 2022 / v1', '30-02-2022','01-13-2022', '08 branuari 2022']
     DP = DateParser()
     for case in TESTCASES:
         d,r = DP.split_and_parse(case)
