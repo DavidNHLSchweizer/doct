@@ -2,10 +2,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 import datetime
 from pathlib import Path
+import re
 import time
 import pandas as pd
 from date_parser import DateParser
 
+
+def is_valid_email(email: str)->bool:
+    email_regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+    return re.compile(email_regex).match(email) is not None
 
 @dataclass
 class AanvraagDocumentInfo:
@@ -34,6 +39,8 @@ class AanvraagDocumentInfo:
         if  self.titel != value.titel:
             return False
         return True
+    def valid(self):
+        return self.student != '' and self.studnr != '' and is_valid_email(self.email) and self.bedrijf != ''
 
 class AanvraagInfo:
     def __init__(self, docInfo: AanvraagDocumentInfo, timestamp = datetime.datetime.now()):
@@ -47,6 +54,8 @@ class AanvraagInfo:
         if not (self.docInfo == value.docInfo):
             return False
         return True      
+    def valid(self):
+        return self.docInfo.valid() and isinstance(self.timestamp, datetime.datetime)
 
 COLMAP = {'timestamp':0, 'student':1, 'studentnr':2, 'telefoonnummer':3, 'email':4, 'datum':5, 'versie':6, 'bedrijf':7, 'titel':8, 'beoordeling':9}
 class AanvraagData:   

@@ -14,9 +14,12 @@ class PDFReaderException(Exception): pass
 def nrows(table: pd.DataFrame)->int:
     return table.shape[0]
 
+def get_file_timestamp(filename: str):
+    return datetime.datetime.fromtimestamp(Path(filename).stat().st_mtime)
+
 class AanvraagReaderFromPDF:
     def __init__(self, pdf_file: str):
-        self.aanvraag = AanvraagInfo(AanvraagDocumentInfo(), datetime.datetime.fromtimestamp(Path(pdf_file).stat().st_mtime))        
+        self.aanvraag = AanvraagInfo(AanvraagDocumentInfo(), get_file_timestamp(pdf_file))        
         # self.aanvraag = AanvraagInfo(AanvraagDocumentInfo(), time.ctime(Path(pdf_file).stat().st_mtime)))        
         self.read_pdf(pdf_file)
     def read_pdf(self, pdf_file: str):
@@ -46,7 +49,7 @@ class AanvraagReaderFromPDF:
     def _parse_title(self, table: pd.DataFrame)->str:
         #regex because some students somehow lose the '.' characters or renumber the paragraphs
         start_paragraph  = '\d.*\(Voorlopige, maar beschrijvende\) Titel van de afstudeeropdracht'
-        end_paragraph = '\d.*Wat is de aanleiding voor de opdracht\?'         
+        end_paragraph    = '\d.*Wat is de aanleiding voor de opdracht\?'         
         self.aanvraag.docInfo.titel = ' '.join(self.__get_strings_from_table(table, start_paragraph, end_paragraph))
     def __get_strings_from_table(self, table:pd.DataFrame, start_paragraph_regex:str, end_paragraph_regex:str)->list[str]:
         def row_matches(table, row, pattern:re.Pattern):
