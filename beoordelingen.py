@@ -12,15 +12,20 @@ class BeoordelingenMailMerger(MailMerger):
         return self.output_directory.joinpath(f'Beoordeling aanvraag {info.student} ({info.bedrijf}).docx')
     def __merge_document(self, info: AanvraagDocumentInfo):
         self.process(self.__get_output_filename(info), student=info.student,bedrijf=info.bedrijf,titel=info.titel,datum=info.datum_str, versie=info.versie)
-    def merge_documents(self, aanvragen: list[AanvraagInfo]):
+    def merge_documents(self, aanvragen: list[AanvraagInfo])->int:
+        result = 0
+        if len(aanvragen) > 0 and not self.output_directory.is_dir():
+            self.output_directory.mkdir()
         for aanvraag in aanvragen:
             self.__merge_document(aanvraag.docInfo)
+            result += 1
+        return result
 
 
 
 if __name__=="__main__":
-    ADB = AanvraagDatabase('prullaria.xlsx', False)
+    ADB = AanvraagDatabase('maanzaad.xlsx', False)
     for aanvraag in ADB.data.aanvragen:
         print(aanvraag)
-    Merger = BeoordelingenMailMerger(r'.\templates\template 0.7.docx', r'.\tem')
+    Merger = BeoordelingenMailMerger(r'.\templates\template 0.7.docx', r'.\zaadmaan')
     Merger.merge_documents(ADB.data.aanvragen)

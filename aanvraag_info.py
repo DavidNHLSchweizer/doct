@@ -10,6 +10,7 @@ def is_valid_email(email: str)->bool:
 
 class AanvraagDocumentInfo:
     def __init__(self, datum_str='', student='', studnr='', telno='', email='', bedrijf='', titel=''):        
+        self._dateparser = DateParser()
         self.datum_str = datum_str
         self.student = student
         self.studnr = studnr
@@ -20,7 +21,9 @@ class AanvraagDocumentInfo:
     def __str__(self):
         return f'{self.student}({self.studnr}) - {self.datum_str}: {self.bedrijf} - "{self.titel}"'
     def __eq__(self, value: AanvraagDocumentInfo):
-        if  self.datum_str != value.datum_str:
+        self_date,_ = self._dateparser.parse_date(self.datum_str)
+        value_date,_= self._dateparser.parse_date(self.datum_str)
+        if self_date  != value_date:
             return False
         if  self.datum != value.datum:
             return False
@@ -55,7 +58,7 @@ class AanvraagDocumentInfo:
         self.__datum_str = value
         self.__parse_datum()
     def __parse_datum(self):
-        self.__datum,self.__versie = DateParser().parse_date(self.datum_str)
+        self.__datum,self.__versie = self._dateparser.parse_date(self.datum_str)
         if self.__versie and self.__versie.find('/') >= 0:
             self.__versie = self.__versie.replace('/','').strip()
 

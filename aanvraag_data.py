@@ -1,11 +1,11 @@
 import datetime
-
 import pandas as pd
 from aanvraag_directory import AanvraagDirectory
 from aanvraag_info import AanvraagDocumentInfo, AanvraagInfo
+from haslog import HasLog
 
 COLMAP = {'timestamp':0, 'student':1, 'studentnr':2, 'telefoonnummer':3, 'email':4, 'datum':5, 'versie':6, 'bedrijf':7, 'titel':8, 'beoordeling':9}
-class AanvraagDataXLS:   
+class AanvraagDataXLS(HasLog):   
     def __init__(self, xls_filename, new_file = False):
         self.xls_filename = xls_filename
         self.writer:pd.ExcelWriter = self.open_xls(new_file)
@@ -58,6 +58,7 @@ class AanvraagDataXLS:
             self.sheet.cells[row_nr][col_nr] = value
     def save(self):
         self.writer.close()
+        self.info(f'Saved data to {self.xls_filename}.')
         self.writer = self.open_xls(False)
 
 class AanvraagData:   
@@ -81,38 +82,46 @@ class AanvraagData:
                 return True
         return False
 
-class AanvraagDatabase:
+class AanvraagDatabase(HasLog):
     def __init__(self, xls_filename, new_file = False):
         self.xls = AanvraagDataXLS(xls_filename, new_file)
         self.data = AanvraagData()
         self.__read_xls()
     @property
     def aanvragen(self):
-        self.data.aanvragen
+        return self.data.aanvragen
+    def filter_aanvragen(self, min_date:datetime.datetime = None):
+        return list(filter(lambda aanvraag: aanvraag.timestamp >= min_date, self.aanvragen))
+    def nr_aanvragen(self):
+        return len(self.aanvragen)
     def __read_xls(self):
         for row_nr in range(2,self.xls.number_rows()+1): #skip heading, rows are indexed from 1 in ExcelWriter
             self.data.add_aanvraag(self.xls.read_aanvraag(row_nr))
     def is_in_database(self, new_aanvraag: AanvraagDocumentInfo):
         return self.data.contains(new_aanvraag)
-    def read_directory(self, directory, min_date = None):
+    def read_directory(self, directory, min_date:datetime.datetime = None)->int:
         AD = AanvraagDirectory(directory)        
+        result = 0
         for aanvraag in sorted(AD.read_files(min_date), key=lambda aanvraag: (aanvraag.timestamp,aanvraag.docInfo.student)):
             if self.is_in_database(aanvraag):
-                print(f'***WARNING***: Duplicate {aanvraag}; skipping')
+                self.warning(f'Duplicate {aanvraag}; skipping.')
             else:
                 self.data.add_aanvraag(aanvraag)
                 self.xls.create_aanvraag(aanvraag)            
+                result +=1
         self.xls.save()
+        return result
 
 #TODO: check update and delete (low prio)
 #TODO: keep sorted on timestamp/student for full spreadsheet
 
 if __name__=="__main__":
-    ADB = AanvraagDatabase('prullaria.xlsx', True)
-    for aanvraag in ADB.data.aanvragen:
+    ADB = AanvraagDatabase('maanzaad.xlsx', False)
+    for aanvraag in ADB.aanvragen:
         print(aanvraag)
-    ADB.read_directory(r'C:\repos\doct\test2')
-    ADB.read_directory(r'C:\repos\doct\jimi')
-    ADB.read_directory(r'C:\repos\doct\test3')
-    for aanvraag in ADB.data.aanvragen:
+    # ADB.read_directory(r'C:\repos\doct\test2')
+    # ADB.read_directory(r'C:\repos\doct\jimi')
+    # ADB.read_directory(r'C:\repos\doct\test3')
+    print('filter ing')
+    for aanvraag in ADB.filter_aanvragen(datetime.datetime(2022, 11,25)):
         print(aanvraag)

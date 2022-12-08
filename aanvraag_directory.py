@@ -3,13 +3,14 @@ import datetime
 from pathlib import Path
 from aanvraag_info import AanvraagInfo
 from aanvraag_reader import ERRCOMMENT, AanvraagReaderFromPDF
+from haslog import HasLog
 
 @dataclass
 class FileData:
     filename: str = ''
     timestamp: datetime.datetime = None
     
-class AanvraagDirectory:
+class AanvraagDirectory(HasLog):
     def __init__(self, directory):
         self.directory = directory
         self.__filedatas = self.__get_filedatas(directory)
@@ -23,15 +24,15 @@ class AanvraagDirectory:
             return filedata.timestamp >= min_date
         result = []
         for filedata in self.__filedatas:
-            print(filedata.filename)
+            self.info(filedata.filename)
             try:           
                 if not min_date or test_date(filedata):
                     result.append(aanvraag:=AanvraagReaderFromPDF(filedata.filename, filedata.timestamp).aanvraag)
-                    print(aanvraag)
+                    self.info(aanvraag)
                 else:
-                    print(f'skipped: file (timestamp: {filedata.timestamp}) older than {min_date:%d-%m-%Y}.')
+                    self.info(f'skipped: file (timestamp: {filedata.timestamp}) older than {min_date:%d-%m-%Y}.')
             except Exception as E:
-                print(f'***ERROR***: Kan bestand {filedata.filename}  niet lezen: {E}\n{ERRCOMMENT}.')
+                self.error(f'Can not read file {filedata.filename}: {E}\n{ERRCOMMENT}.')
         return sorted(result, key=lambda filedata: filedata.timestamp) 
     
 if __name__=='__main__':
