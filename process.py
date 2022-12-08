@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 import pandas as pd
 from aanvraag_data import AanvraagDatabase
-from beoordelingen import BeoordelingenMailMerger
+from beoordelingen import BeoordelingOordeelReader, BeoordelingenMailMerger, is_voldoende
 from haslog import HasLog
 
 class AanvraagProcessor(HasLog):
@@ -43,6 +43,7 @@ class AanvraagProcessor(HasLog):
 #         print(f'*** WORD DOCUMENTS CREATED IN {self.output_directory} ***')
 
 if __name__ == "__main__":
+    zumzum = r'.\zmzmzm'
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     cutoff = datetime.datetime(2022, 12, 1)
     processor = AanvraagProcessor('maanzaad.xlsx')
@@ -50,5 +51,12 @@ if __name__ == "__main__":
     processor.read_new_files(r'C:\repos\doct\test2', cutoff)
     processor.read_new_files(r'C:\repos\doct\jimi', cutoff)
     print('=== creating forms ===')
-    processor.create_beoordelings_formulieren(r'.\templates\template 0.7.docx', r'.\zmzmzm', cutoff)
+    processor.create_beoordelings_formulieren(r'.\templates\template 0.7.docx', zumzum, cutoff)
+    for file in Path(zumzum).glob('*.docx'):
+        pad = file.resolve()
+        print(pad)
+        reader = BeoordelingOordeelReader(pad)
+        oordeel = reader.read_beoordeling()
+        print(f'oordeel: {oordeel}')
+        print(f'is voldoende: {is_voldoende(oordeel)}')
     

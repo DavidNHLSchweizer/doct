@@ -63,13 +63,19 @@ class AanvraagDocumentInfo:
             self.__versie = self.__versie.replace('/','').strip()
 
 class AanvraagInfo:
-    def __init__(self, docInfo: AanvraagDocumentInfo, timestamp = datetime.datetime.now()):
+    def __init__(self, docInfo: AanvraagDocumentInfo, timestamp = datetime.datetime.now(), passed = False):
         self.docInfo = docInfo
         self.timestamp = timestamp
+        self.passed = passed
     def __str__(self):
-        return f'{str(self.docInfo)} [{self.timestamp}]'
+        result = f'{str(self.docInfo)} [{self.timestamp}]'
+        if self.passed:
+            result = result + ' (voldoende)'
+        return result
     def __eq__(self, value: AanvraagInfo)->bool:
         if self.timestamp != value.timestamp:
+            return False
+        if self.passed != value.passed:
             return False
         if not (self.docInfo == value.docInfo):
             return False

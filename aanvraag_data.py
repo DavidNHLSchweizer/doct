@@ -4,6 +4,9 @@ from aanvraag_directory import AanvraagDirectory
 from aanvraag_info import AanvraagDocumentInfo, AanvraagInfo
 from haslog import HasLog
 
+class DataException(Exception): pass
+
+VOLDOENDE = 'voldoende'
 COLMAP = {'timestamp':0, 'student':1, 'studentnr':2, 'telefoonnummer':3, 'email':4, 'datum':5, 'versie':6, 'bedrijf':7, 'titel':8, 'beoordeling':9}
 class AanvraagDataXLS(HasLog):   
     def __init__(self, xls_filename, new_file = False):
@@ -20,7 +23,7 @@ class AanvraagDataXLS(HasLog):
         if new_file:
             pd.DataFrame(columns=COLMAP.keys()).to_excel(xls_filename, index=False)
         return pd.ExcelWriter(self.xls_filename, engine='openpyxl', mode='a')   
-    def __as_sheet_row(self, aanvraag: AanvraagInfo):
+    def __to_sheet_row(self, aanvraag: AanvraagInfo):
         def get_datum_str(datum, versie):
             if datum:
                 return f'{datum:%d-%m-%Y}'
@@ -31,13 +34,14 @@ class AanvraagDataXLS(HasLog):
                 return versie if versie else ''
             else:
                 return ''        
+        def get_passed_str(passed: bool):
+            if passed:
+                return VOLDOENDE
+            else:
+                return ''
         info = aanvraag.docInfo
-        return [aanvraag.timestamp, info.student, info.studnr, info.telno, info.email, get_datum_str(info.datum, info.versie), get_versie_str(info.datum, info.versie), info.bedrijf, info.titel, '']
-    def number_rows(self):
-        return self.sheet.max_row
-    def create_aanvraag(self, aanvraag: AanvraagInfo):
-        self.sheet.append(self.__as_sheet_row(aanvraag))
-    def read_aanvraag(self, row_nr: int)->AanvraagInfo:
+        return [aanvraag.timestamp, info.student, info.studnr, info.telno, info.email, get_datum_str(info.datum, info.versie), get_versie_str(info.datum, info.versie), info.bedrijf, info.titel, get_passed_str(aanvraag.passed)]
+    def __from_sheet_row(self, row_nr: int)->AanvraagInfo:
         def get_col(heading):
             if value := row[COLMAP[heading]].value:
                 return value
@@ -48,13 +52,28 @@ class AanvraagDataXLS(HasLog):
                 return f'{get_col("datum")} / {versie}'
             else:
                 return f'{get_col("datum")}'
+        def get_passed(pass_string):
+            return pass_string == VOLDOENDE
         row = self.sheet[row_nr]
         return AanvraagInfo(AanvraagDocumentInfo(datum_str=get_datum_str(), student=get_col('student'), studnr=get_col('studentnr'), 
                                 telno=get_col('telefoonnummer'), email=get_col('email'), bedrijf=get_col('bedrijf'), titel=get_col('titel')), 
-                                get_col('timestamp'))
-    def update_aanvraag(self, aanvraag: AanvraagInfo, row_nr: int):
-        new_row = self.__as_sheet_row(aanvraag)
-        for col_nr,value in enumerate(new_row):
+                                get_col('timestamp'), get_passed(get_col('beoordeling')))
+    def number_rows(self):
+        return self.sheet.max_row
+    def create_aanvraag(self, aanvraag: AanvraagInfo):
+        self.sheet.append(self.__to_sheet_row(aanvraag))
+    def read_aanvraag(self, row_nr: int)->AanvraagInfo:
+        return self.__from_sheet_row(row_nr)
+    def __find_aanvraag_row(self, aanvraag: AanvraagInfo):
+        row_nr = self.number_rows()-1
+        while row_nr >= 0 and self.read_aanvraag(row_nr) != aanvraag:
+            row_nr -=1
+        return row_nr            
+    def update_aanvraag(self, aanvraag: AanvraagInfo, row_nr: int=-1):
+        if row_nr == -1 and (row_nr := self.__find_aanvraag_row(aanvraag)) == -1:
+            self.warning(f'aanvraag {aanvraag} not found. Can not be updated. Skipping.')
+            return
+        for col_nr,value in enumerate(self.__to_sheet_row(aanvraag)):
             self.sheet.cells[row_nr][col_nr] = value
     def save(self):
         self.writer.close()
@@ -81,7 +100,7 @@ class AanvraagData:
             if aanvraag == new_aanvraag:
                 return True
         return False
-
+       
 class AanvraagDatabase(HasLog):
     def __init__(self, xls_filename, new_file = False):
         self.xls = AanvraagDataXLS(xls_filename, new_file)
@@ -111,6 +130,11 @@ class AanvraagDatabase(HasLog):
                 result +=1
         self.xls.save()
         return result
+    def update_grade(self, aanvraag:AanvraagInfo, passed: bool):
+        if not self.is_in_database(aanvraag):
+            raise DataException(f'aanvraag {aanvraag} is not in database.')
+        aanvraag.passed = passed
+        self.xls.update_aanvraag(aanvraag, )        
 
 #TODO: check update and delete (low prio)
 #TODO: keep sorted on timestamp/student for full spreadsheet

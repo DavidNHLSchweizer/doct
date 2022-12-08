@@ -2,6 +2,7 @@ from pathlib import Path
 from aanvraag_data import AanvraagDatabase
 from aanvraag_info import AanvraagDocumentInfo, AanvraagInfo
 from mail_merge import MailMerger
+from word_reader import WordReader
 
 
 class BeoordelingenMailMerger(MailMerger):
@@ -21,8 +22,28 @@ class BeoordelingenMailMerger(MailMerger):
             result += 1
         return result
 
+VOLDOENDE = 'voldoende'
+def is_voldoende(beoordeling: str)->bool:
+    print(f'[{beoordeling}]')
+    return beoordeling.lower() == VOLDOENDE
 
-
+class BeoordelingOordeelReader(WordReader):
+    def read_beoordeling(self)->str:
+        if (result := self.__find_table()):
+            try:
+                cell_text = result.Cell(Row=5,Column=2).Range.Text
+                # returned cell_text for some reason ends with both an 0x0d and a 0x07
+                return cell_text[:-2]
+            except Exception as E:
+                print(E)
+                return ''
+        return ''
+    def __find_table(self):
+        if self.document.Tables.Count > 0:
+            return self.document.Tables(1)
+        else:
+            return None
+  
 if __name__=="__main__":
     ADB = AanvraagDatabase('maanzaad.xlsx', False)
     for aanvraag in ADB.data.aanvragen:
