@@ -67,6 +67,9 @@ class AanvraagInfo:
         self.docInfo = docInfo
         self.timestamp = timestamp
         self.passed = passed
+    def modify(self, **kwdargs):
+        for kwd,value in kwdargs.items():
+            setattr(self, kwd, value)
     def __str__(self):
         result = f'{str(self.docInfo)} [{self.timestamp}]'
         if self.passed:

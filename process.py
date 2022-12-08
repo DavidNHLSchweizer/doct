@@ -20,7 +20,7 @@ class AanvraagProcessor(HasLog):
         self.info(f'{result} files read from {directory}.')
         return result    
     def create_beoordelings_formulieren(self, template, output_directory, min_date: datetime.datetime = None):
-        result = BeoordelingenMailMerger(template, output_directory).merge_documents(self.database.filter_aanvragen(min_date))
+        result = BeoordelingenMailMerger(template, output_directory).merge_documents(self.database.filter_aanvragen_timestamp(min_date))
         self.info(f'{result} formulieren created in {output_directory}.')
         return result
         
@@ -45,8 +45,8 @@ class AanvraagProcessor(HasLog):
 if __name__ == "__main__":
     zumzum = r'.\zmzmzm'
     logging.basicConfig(level=logging.INFO, format="%(message)s")
-    cutoff = datetime.datetime(2022, 12, 1)
-    processor = AanvraagProcessor('maanzaad.xlsx')
+    cutoff = datetime.datetime(2022, 11, 1)
+    processor = AanvraagProcessor('lijnzaad.xlsx')
     print('=== reading new files ===')
     processor.read_new_files(r'C:\repos\doct\test2', cutoff)
     processor.read_new_files(r'C:\repos\doct\jimi', cutoff)
