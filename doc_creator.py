@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 import pandas as pd
 from mailmerge import MailMerge
@@ -5,6 +6,16 @@ from mailmerge import MailMerge
 TEMPLATE = "template 0.6.docx"
 def nrows(table):
     return table.shape[0]
+
+def MailMergeDocument(template_doc: str, output_file_name: str, **kwds):
+    try:
+        document = MailMerge(template_doc)
+        document.merge(**kwds)
+        document.write(output_file_name)
+    except Exception as E:
+        logging.error(f'Error merging document (template:{template_doc}) to {output_file_name}: {E}')
+
+
 
 class DocumentCreator:
     def __init__(self, data: pd.DataFrame, template: str, output_directory, output_prefix: str):

@@ -12,12 +12,15 @@ class PDFReaderException(Exception): pass
 def nrows(table: pd.DataFrame)->int:
     return table.shape[0]
 
-def get_file_timestamp(filename: str):
-    return datetime.datetime.fromtimestamp(Path(filename).stat().st_mtime)
+def get_file_timestamp(timestamp:datetime.datetime, filename: str)->datetime.datetime:
+    if timestamp:
+        return timestamp
+    else:
+        return datetime.datetime.fromtimestamp(Path(filename).stat().st_mtime)
 
 class AanvraagReaderFromPDF:
-    def __init__(self, pdf_file: str):
-        self.aanvraag = AanvraagInfo(AanvraagDocumentInfo(), timestamp=get_file_timestamp(pdf_file))
+    def __init__(self, pdf_file: str, timestamp:datetime.datetime = None):
+        self.aanvraag = AanvraagInfo(AanvraagDocumentInfo(), timestamp=get_file_timestamp(timestamp, pdf_file))
         self.read_pdf(pdf_file)
         self.filename = pdf_file
     def __str__(self):
