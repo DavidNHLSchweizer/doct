@@ -153,10 +153,14 @@ class AanvraagDatabase(HasLog):
         if not self.is_in_database(aanvraag):
             raise DataException(f'aanvraag {aanvraag} is not in database.')
         self.xls.update_aanvraag(aanvraag, passed=passed)  #note: this also modifies the aanvraag record should be done through keys
-    def find_aanvragen(self, studnr: str)->list[AanvraagInfo]:
+    def update_grade_for_student(self, student, passed: bool):
+        aanvragen = self.find_aanvragen(student)
+        if aanvragen:
+            self.update_grade(aanvragen[0], passed)
+    def find_aanvragen(self, student: str)->list[AanvraagInfo]:
         result = []
         for aanvraag in self.aanvragen:
-            if aanvraag.docInfo.studnr == studnr:
+            if aanvraag.docInfo.student == student:
                 result.append(aanvraag)
         return result
     def flush(self):

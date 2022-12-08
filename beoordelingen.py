@@ -24,29 +24,36 @@ class BeoordelingenMailMerger(MailMerger):
 
 VOLDOENDE = 'voldoende'
 def is_voldoende(beoordeling: str)->bool:
-    print(f'[{beoordeling}]')
     return beoordeling.lower() == VOLDOENDE
 
 class BeoordelingOordeelReader(WordReader):
-    def read_beoordeling(self)->str:
-        if (result := self.__find_table()):
+    #read student and grade from the file
+    def read_data(self)->tuple[str,str]:
+        def read_cell_value(table, rownr, colnr)->str:
             try:
-                cell_text = result.Cell(Row=5,Column=2).Range.Text
+                cell_text = table.Cell(Row=rownr,Column=colnr).Range.Text
                 # returned cell_text for some reason ends with both an 0x0d and a 0x07
                 return cell_text[:-2]
             except Exception as E:
                 print(E)
-                return ''
-        return ''
+                grade = ''
+            return ''
+        ROW_STUDENT = 1
+        ROW_GRADE   = 5
+        COL_VALUES  = 2
+        if (table := self.__find_table()):
+            return (read_cell_value(table, ROW_STUDENT, COL_VALUES), read_cell_value(table, ROW_GRADE,COL_VALUES))
+        else:
+            return ('','')
     def __find_table(self):
         if self.document.Tables.Count > 0:
             return self.document.Tables(1)
         else:
             return None
-  
+
 if __name__=="__main__":
-    ADB = AanvraagDatabase('maanzaad.xlsx', False)
+    ADB = AanvraagDatabase('koolzaad.xlsx', False)
     for aanvraag in ADB.data.aanvragen:
         print(aanvraag)
-    Merger = BeoordelingenMailMerger(r'.\templates\template 0.7.docx', r'.\zaadmaan')
+    Merger = BeoordelingenMailMerger(r'.\templates\template 0.7.docx', r'.\kool')
     Merger.merge_documents(ADB.data.aanvragen)
